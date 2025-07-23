@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Lenguaje Algebraico - Profesor Mauricio Veit</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font and general body styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        /* Ensure the main container is centered and responsive */
+        #quiz-container {
+            max-width: 600px;
+            width: 100%;
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Rounded corners */
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            padding: 2.5rem; /* Ample padding */
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        /* Style for question text */
+        #question-text {
+            font-size: 1.25rem; /* Slightly smaller font for questions (was 1.5rem) */
+            font-weight: 600; /* Semi-bold */
+            color: #334155; /* Darker text for readability */
+            margin-bottom: 1.5rem;
+        }
+        /* Style for alternative buttons */
+        .alternative-button {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem; /* Rounded corners for buttons */
+            background-color: #e2e8f0; /* Light gray background */
+            color: #475569; /* Darker text */
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.2s;
+            cursor: pointer;
+            border: 2px solid transparent; /* Default border */
+        }
+        .alternative-button:hover:not(.correct-answer):not(.incorrect-answer) {
+            background-color: #cbd5e1; /* Darker gray on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+        .alternative-button.selected {
+            border-color: #6366f1; /* Purple border when selected */
+            background-color: #c7d2fe; /* Lighter purple background */
+        }
+        .alternative-button.correct-answer {
+            background-color: #d1fae5; /* Light green for correct */
+            border-color: #34d399; /* Green border */
+            color: #065f46; /* Dark green text */
+            font-weight: 700;
+        }
+        .alternative-button.incorrect-answer {
+            background-color: #fee2e2; /* Light red for incorrect */
+            border-color: #ef4444; /* Red border */
+            color: #991b1b; /* Dark red text */
+            font-weight: 700;
+        }
+        /* Style for feedback message */
+        #feedback-message {
+            margin-top: 1rem;
+            font-size: 1.125rem;
+            font-weight: 500;
+        }
+        /* Style for next question button */
+        #next-button {
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            background-color: #6366f1; /* Purple background */
+            color: #ffffff; /* White text */
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.2s;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #next-button:hover {
+            background-color: #4f46e5; /* Darker purple on hover */
+            transform: translateY(-2px);
+        }
+        #next-button:disabled {
+            background-color: #9ca3af; /* Gray when disabled */
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        /* Style for final results */
+        #results-container {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #334155;
+            margin-top: 2rem;
+        }
+        #restart-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            background-color: #10b981; /* Green for restart */
+            color: #ffffff;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.2s;
+            cursor: pointer;
+            margin-top: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #restart-button:hover {
+            background-color: #059669; /* Darker green on hover */
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div id="quiz-container" class="flex flex-col items-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Quiz de Lenguaje Algebraico</h1>
+        <!-- Profesor's name with bold blue letters -->
+        <p class="text-lg font-bold text-blue-700 mb-6">Profesor: Mauricio Veit</p>
+
+        <div id="quiz-content" class="w-full">
+            <p id="question-text" class="text-xl font-semibold text-gray-700 mb-6"></p>
+            <div id="alternatives-container" class="flex flex-col gap-4 mb-6">
+                <!-- Alternative buttons will be inserted here by JavaScript -->
+            </div>
+            <p id="feedback-message" class="text-lg font-medium"></p>
+            <button id="next-button" class="next-button px-8 py-3 rounded-xl bg-indigo-600 text-white font-semibold shadow-lg hover:bg-indigo-700 transition-all duration-300" disabled>Siguiente Pregunta</button>
+        </div>
+
+        <div id="results-container" class="hidden">
+            <p id="final-score" class="text-2xl font-bold text-gray-800 mb-4"></p>
+            <p id="final-message" class="text-xl text-gray-700 mb-6"></p>
+            <button id="restart-button" class="px-6 py-3 rounded-lg bg-green-500 text-white font-semibold shadow-md hover:bg-green-600 transition-all duration-300">Volver a Intentar</button>
+        </div>
+    </div>
+
+    <script>
+        // Minibase de datos estática con 30 ejercicios
+        const ejerciciosDisponibles = [
+            {"pregunta": "El doble de un número", "respuesta_correcta": "2x", "alternativas": ["x + 2", "x / 2", "2x"]},
+            {"pregunta": "Un número aumentado en cinco", "respuesta_correcta": "x + 5", "alternativas": ["5x", "x - 5", "x + 5"]},
+            {"pregunta": "La mitad de un número", "respuesta_correcta": "x / 2", "alternativas": ["2x", "x - 2", "x / 2"]},
+            {"pregunta": "El triple de un número disminuido en uno", "respuesta_correcta": "3x - 1", "alternativas": ["x - 3", "3x + 1", "3x - 1"]},
+            {"pregunta": "La suma de dos números diferentes", "respuesta_correcta": "a + b", "alternativas": ["2x", "x + x", "a + b"]},
+            {"pregunta": "El producto de dos números", "respuesta_correcta": "xy", "alternativas": ["x + y", "x / y", "xy"]},
+            {"pregunta": "Un número par", "respuesta_correcta": "2n", "alternativas": ["n + 2", "n / 2", "2n"]},
+            {"pregunta": "Un número impar", "respuesta_correcta": "2n + 1", "alternativas": ["n - 1", "n + 1", "2n + 1"]},
+            {"pregunta": "Tres números consecutivos", "respuesta_correcta": "x, x+1, x+2", "alternativas": ["3x", "x+y+z", "x, x+1, x+2"]},
+            {"pregunta": "El cuadrado de un número", "respuesta_correcta": "x²", "alternativas": ["2x", "x + x", "x²"]},
+            {"pregunta": "La raíz cuadrada de un número", "respuesta_correcta": "√x", "alternativas": ["x / 2", "x²", "√x"]},
+            {"pregunta": "Un número menos su doble", "respuesta_correcta": "x - 2x", "alternativas": ["2x - x", "x + 2x", "x - 2x"]},
+            {"pregunta": "La cuarta parte de un número", "respuesta_correcta": "x / 4", "alternativas": ["4x", "x - 4", "x / 4"]},
+            {"pregunta": "El consecutivo de un número", "respuesta_correcta": "x + 1", "alternativas": ["x - 1", "2x", "x + 1"]},
+            {"pregunta": "Un número multiplicado por sí mismo", "respuesta_correcta": "x²", "alternativas": ["2x", "x + x", "x²"]},
+            {"pregunta": "La diferencia entre dos números", "respuesta_correcta": "a - b", "alternativas": ["a + b", "ab", "a - b"]},
+            {"pregunta": "El cuádruple de un número", "respuesta_correcta": "4x", "alternativas": ["x + 4", "x / 4", "4x"]},
+            {"pregunta": "Un número disminuido en siete", "respuesta_correcta": "x - 7", "alternativas": ["7x", "x + 7", "x - 7"]},
+            {"pregunta": "El doble de un número más tres", "respuesta_correcta": "2x + 3", "alternativas": ["x + 2 + 3", "3x + 2", "2x + 3"]},
+            {"pregunta": "La suma de tres números distintos", "respuesta_correcta": "a + b + c", "alternativas": ["3x", "x+y", "a + b + c"]},
+            {"pregunta": "Un número al cubo", "respuesta_correcta": "x³", "alternativas": ["3x", "x + 3", "x³"]},
+            {"pregunta": "El cociente de dos números", "respuesta_correcta": "a / b", "alternativas": ["ab", "a - b", "a / b"]},
+            {"pregunta": "Un número aumentado en su doble", "respuesta_correcta": "x + 2x", "alternativas": ["2x - x", "3x", "x + 2x"]},
+            {"pregunta": "La suma de un número y su recíproco", "respuesta_correcta": "x + 1/x", "alternativas": ["x * x", "x + x", "x + 1/x"]},
+            {"pregunta": "La suma de los cuadrados de dos números", "respuesta_correcta": "a² + b²", "alternativas": ["(a+b)²", "a² - b²", "a² + b²"]},
+            {"pregunta": "El doble de la suma de dos números", "respuesta_correcta": "2(a + b)", "alternativas": ["2a + b", "a + 2b", "2(a + b)"]},
+            {"pregunta": "La diferencia de los cuadrados de dos números", "respuesta_correcta": "a² - b²", "alternativas": ["(a-b)²", "a² + b²", "a² - b²"]},
+            {"pregunta": "El cubo de un número disminuido en cinco", "respuesta_correcta": "x³ - 5", "alternativas": ["3x - 5", "5 - x³", "x³ - 5"]},
+            {"pregunta": "Un número es cinco veces otro número", "respuesta_correcta": "x = 5y", "alternativas": ["x + 5y", "5x = y", "x = 5y"]},
+            {"pregunta": "La suma de tres números consecutivos pares", "respuesta_correcta": "2n + (2n+2) + (2n+4)", "alternativas": ["n+(n+1)+(n+2)", "2n+2n+2+2n+4", "2n + (2n+2) + (2n+4)"]},
+        ];
+
+        let ejerciciosQuiz = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let questionAnswered = false; // Flag to prevent multiple answers per question
+
+        // Get DOM elements
+        const questionText = document.getElementById('question-text');
+        const alternativesContainer = document.getElementById('alternatives-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const quizContent = document.getElementById('quiz-content');
+        const resultsContainer = document.getElementById('results-container');
+        const finalScoreText = document.getElementById('final-score');
+        const finalMessageText = document.getElementById('final-message');
+        const restartButton = document.getElementById('restart-button');
+
+        /**
+         * Initializes the quiz by selecting 10 random questions and resetting state.
+         */
+        function startQuiz() {
+            // Select 10 random questions from the available pool
+            ejerciciosQuiz = getRandomQuestions(ejerciciosDisponibles, 10);
+            currentQuestionIndex = 0;
+            score = 0;
+            questionAnswered = false;
+
+            // Show quiz content and hide results
+            quizContent.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+            nextButton.disabled = true; // Disable next button initially
+
+            displayQuestion();
+        }
+
+        /**
+         * Selects a specified number of random questions from a given array.
+         * @param {Array} arr - The array of available questions.
+         * @param {number} num - The number of questions to select.
+         * @returns {Array} An array of randomly selected questions.
+         */
+        function getRandomQuestions(arr, num) {
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, num);
+        }
+
+        /**
+         * Displays the current question and its alternatives.
+         */
+        function displayQuestion() {
+            feedbackMessage.textContent = ''; // Clear previous feedback
+            alternativesContainer.innerHTML = ''; // Clear previous alternatives
+            nextButton.disabled = true; // Disable next button until an answer is selected
+            questionAnswered = false; // Reset flag for new question
+
+            if (currentQuestionIndex < ejerciciosQuiz.length) {
+                const currentEjercicio = ejerciciosQuiz[currentQuestionIndex];
+                questionText.textContent = `Pregunta ${currentQuestionIndex + 1}/${ejerciciosQuiz.length}: ¿Cuál es la expresión algebraica para: '${currentEjercicio.pregunta}'?`;
+
+                // Shuffle alternatives for the current question
+                const shuffledAlternatives = [...currentEjercicio.alternativas].sort(() => 0.5 - Math.random());
+
+                shuffledAlternatives.forEach(alt => {
+                    const button = document.createElement('button');
+                    button.textContent = alt;
+                    button.classList.add('alternative-button', 'px-6', 'py-3', 'rounded-xl', 'bg-gray-200', 'text-gray-700', 'font-medium', 'shadow-sm', 'hover:bg-gray-300', 'transition-all', 'duration-200');
+                    button.addEventListener('click', () => handleAnswer(button, alt, currentEjercicio.respuesta_correcta));
+                    alternativesContainer.appendChild(button);
+                });
+            } else {
+                showResults();
+            }
+        }
+
+        /**
+         * Handles the user's answer selection.
+         * @param {HTMLButtonElement} selectedButton - The button element that was clicked.
+         * @param {string} selectedAnswer - The text of the selected answer.
+         * @param {string} correctAnswer - The correct answer for the current question.
+         */
+        function handleAnswer(selectedButton, selectedAnswer, correctAnswer) {
+            if (questionAnswered) return; // Prevent answering multiple times
+
+            questionAnswered = true;
+            nextButton.disabled = false; // Enable next button
+
+            // Disable all alternative buttons after selection
+            Array.from(alternativesContainer.children).forEach(button => {
+                button.disabled = true;
+                button.classList.remove('hover:bg-gray-300', 'hover:transform', 'hover:-translate-y-2'); // Remove hover effects
+            });
+
+            selectedButton.classList.add('selected'); // Highlight selected answer
+
+            if (selectedAnswer === correctAnswer) {
+                score++;
+                selectedButton.classList.remove('bg-gray-200', 'text-gray-700', 'selected');
+                selectedButton.classList.add('correct-answer');
+                feedbackMessage.textContent = '¡Correcto! 🎉';
+                feedbackMessage.classList.remove('text-red-600');
+                feedbackMessage.classList.add('text-green-600');
+            } else {
+                selectedButton.classList.remove('bg-gray-200', 'text-gray-700', 'selected');
+                selectedButton.classList.add('incorrect-answer');
+                feedbackMessage.textContent = `Incorrecto. La respuesta correcta era: ${correctAnswer} 😕`;
+                feedbackMessage.classList.remove('text-green-600');
+                feedbackMessage.classList.add('text-red-600');
+
+                // Highlight the correct answer among the alternatives
+                Array.from(alternativesContainer.children).forEach(button => {
+                    if (button.textContent === correctAnswer) {
+                        button.classList.add('correct-answer');
+                        button.classList.remove('bg-gray-200', 'text-gray-700');
+                    }
+                });
+            }
+        }
+
+        /**
+         * Moves to the next question or shows results if all questions are answered.
+         */
+        function nextQuestion() {
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        /**
+         * Displays the final score and a congratulatory/encouraging message.
+         */
+        function showResults() {
+            quizContent.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+
+            finalScoreText.textContent = `Tu puntaje final es: ${score} de ${ejerciciosQuiz.length}`;
+
+            let message = '';
+            if (score === ejerciciosQuiz.length) {
+                message = "¡Felicidades! ¡Has logrado un puntaje perfecto! Eres un crack en el lenguaje algebraico. ¡Sigue así! 🚀";
+            } else if (score >= ejerciciosQuiz.length * 0.7) {
+                message = "¡Excelente trabajo! Has logrado un muy buen puntaje. ¡Sigue practicando y llegarás lejos! 💪";
+            } else {
+                message = "¡Buen intento! Cada error es una oportunidad para aprender. Sigue practicando y verás cómo mejoras. ¡No te rindas! ¡Tienes mucho potencial! ✨";
+            }
+            finalMessageText.textContent = message;
+        }
+
+        // Event Listeners
+        nextButton.addEventListener('click', nextQuestion);
+        restartButton.addEventListener('click', startQuiz);
+
+        // Start the quiz when the page loads
+        document.addEventListener('DOMContentLoaded', startQuiz);
+    </script>
+</body>
+</html>
